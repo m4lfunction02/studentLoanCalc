@@ -1,4 +1,4 @@
-def increaseLoan(year, month):
+def borrow(year, month):
     addLoan = 0
     if year == -4:
         if month == 6: # October
