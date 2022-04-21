@@ -1,5 +1,8 @@
-def constantCurrent(annualIncome, year, RPI=0.015):
+def constant(annualIncome, year, RPI=1.5):
+    RPIfraction = RPI/100
     if year < 0 or annualIncome >= 27_296:
-        return(RPI+0.03)
+        return(RPIfraction+0.03)
     else:
-        return(RPI)
+        return(RPIfraction)
+
+

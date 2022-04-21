@@ -2,15 +2,24 @@ import income, interestRate, repaymentMethods, tools
 from loanCalcs import increaseLoan
 # Year 0 = first year of work, year -1 = last year of university, year starts April 6th
 
+#Settings
+incomeMethod = income.percGrowth
+interestMethod = interestRate.constant
+
+#Assumptions
+startingSalary = float(input("Starting salary: ")) 
+salaryGrowthRate = float(input("Salary annual growth rate (omit '%'): ")) #%
+RPI = float(input("Retail price index (omit %): "))
+#borrowedAmount = 'max'#
 
 def run(repaymentMethod, repaymethodarg=0, printMonthly=False):
     loanTotal = 0
     totalBorrowed = 0
     totalRepaid = 0
     for year in range(-4, 30):
-        annualIncome = income.linearCap(year)
+        annualIncome = incomeMethod(year, startingSalary, salaryGrowthRate)
         monthlyIncome = annualIncome / 12
-        annualInterest = interestRate.constantCurrent(annualIncome, year)
+        annualInterest = interestMethod(annualIncome, year, RPI)
         monthlyInterest = (1 + annualInterest) ** (1 / 12) - 1
 
         for month in range(12):
@@ -29,7 +38,11 @@ def run(repaymentMethod, repaymethodarg=0, printMonthly=False):
             if printMonthly:
                 print(f"Year: {year:>2}, Month: {month:>2}, Loan: {loanTotal:>9.2f}, Income: {monthlyIncome:>8.2f}, Repayment: {repayment:>7.2f}, Borrowed: {borrow:>8.2f}")
             if loanTotal == 0 and year >= 0:
+                if printMonthly:
+                    print(f"Total repayment: £{int(totalRepaid):,d}, Total borrowed: £{int(totalBorrowed):,d}, Total interest: £{int(totalRepaid-totalBorrowed):,d}")
                 return(totalRepaid, totalBorrowed)
+    if printMonthly:
+        print(f"Total repayment: £{int(totalRepaid):,d}, Total borrowed: £{int(totalBorrowed):,d}, Total interest: £{int(totalRepaid-totalBorrowed):,d}")
     return(totalRepaid, totalBorrowed)
 
 mandatoryRepay, totalBorrowed = run(repaymentMethods.mandatory)
@@ -42,6 +55,7 @@ print(f"You plan to borrow £{int(totalBorrowed):,d}")
 print(f"If you make the minimum repayments you will repay £{int(mandatoryRepay):,d}")
 if minFixedRepay is None:
     print(f"There is no way you can pay less than this with your current income.")
+    run(repaymentMethods.mandatory, printMonthly=True)
 else:
     if minTotalPercent is None:
         print(f"To save money, each month, repay whichever is higher of your mandatory minimum repayment or £{int(minFixedRepay):,d}")
@@ -62,8 +76,7 @@ def readInput():
             repayAmount = float(input(f"Type the amount of money (omitting '£') you want to repay each month, default is {defaultRepay:.2f}: "))
         except ValueError:
             repayAmount = defaultRepay
-        repaid, borrowed = run(repaymentMethods.constant,repayAmount,True)
-        print(f"Total repayment: £{int(repaid):,d}, Total borrowed: £{int(borrowed):,d}, Total interest: £{int(repaid-borrowed):,d}")
+        run(repaymentMethods.constant,repayAmount,True)
         readInput()
     elif inputNo == 2:
         defaultRepay = minTotalPercent
@@ -71,8 +84,7 @@ def readInput():
             repayPercent = float(input(f"Type the percentage of your total income (omitting '%') you want to repay each month, default is {defaultRepay:.2f}: "))
         except ValueError:
             repayPercent = defaultRepay
-        repaid, borrowed = run(repaymentMethods.totalPercentage,repayPercent,True)
-        print(f"Total repayment: £{int(repaid):,d}, Total borrowed: £{int(borrowed):,d}, Total interest: £{int(repaid-borrowed):,d}")
+        run(repaymentMethods.totalPercentage,repayPercent,True)
         readInput()
     elif inputNo == 3:
         defaultRepay = minPartial
@@ -80,8 +92,7 @@ def readInput():
             repayPercent = float(input(f"Type the percentage of your income over £2274 (omitting '%') you want to repay each month, default is {defaultRepay:.2f}: "))
         except ValueError:
             repayPercent = defaultRepay
-        repaid, borrowed = run(repaymentMethods.partialPercentage,repayPercent,True)
-        print(f"Total repayment: £{int(repaid):,d}, Total borrowed: £{int(borrowed):,d}, Total interest: £{int(repaid-borrowed):,d}")
+        run(repaymentMethods.partialPercentage,repayPercent,True)
         readInput()
     else:
         print("Invalid input")
