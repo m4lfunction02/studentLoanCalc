@@ -1,26 +1,28 @@
 import income, interestRate, repaymentMethods, tools
-from loanCalcs import borrow
-# Year 0 = first year of work, year -1 = last year of university, year starts April 6th
 
 #Assumptions
-startingSalary = float(input("Starting salary (omit '£'): ")) 
-salaryGrowthRate = float(input("Salary annual growth rate (omit '%'): ")) #%
+initialSalary = float(input("Current salary (omit '£'): ")) 
+salaryGrowthRate = float(input("Salary annual growth rate (omit '%'): "))
 RPI = float(input("Retail price index (omit '%'): "))
+currentBalance = float(input("How much do you owe (omit '£')?: "))
+remainingTerm = int(input("Years until loan is written off: ")) 
 
 #Settings
 def annualIncome(year):
-    return(income.percGrowth(year, startingSalary, salaryGrowthRate))
+    return(income.percGrowth(year, initialSalary, salaryGrowthRate))
 
 def annualInterest(year):
     return(interestRate.constant(annualIncome(year), year, RPI))
 
 #Simulate entire loan
 def simulate(repaymentMethod, printInfo=False):
-    currentLoanAmount = 0
-    totalBorrowed = 0
+    currentLoanAmount = currentBalance
+    initialBalance = currentBalance
     totalRepaid = 0
+    term=remainingTerm
+    
     #Loop through each year
-    for year in range(-4, 30):
+    for year in range(0, term):
         monthlyIncome = annualIncome(year) / 12
         monthlyInterest = (1 + annualInterest(year)) ** (1 / 12) - 1
 
@@ -30,37 +32,29 @@ def simulate(repaymentMethod, printInfo=False):
             currentLoanAmount *= monthlyInterest + 1
 
             #Calculate repayment amount
-            if year >= 1:
-                repayment = min(repaymentMethod(monthlyIncome), currentLoanAmount)
-            else:
-                repayment = 0
+            repayment = min(repaymentMethod(monthlyIncome), currentLoanAmount)
+
             #Repay 
             currentLoanAmount -= repayment
             totalRepaid += repayment
 
-            #Calulate amount to borrow
-            borrowAmount = borrow(year, month)
-            #Borrow
-            currentLoanAmount += borrowAmount
-            totalBorrowed += borrowAmount
-
             if printInfo:
-                print(f"Year: {year:>2} Month: {month:>2} Loan: {currentLoanAmount:>9.2f} Income: {monthlyIncome:>8.2f} Repayment: {repayment:>7.2f} Borrowed: {borrowAmount:>8.2f}")
+                print(f"Year: {year:>2} Month: {month:>2} Loan: {currentLoanAmount:>9.2f} Income: {monthlyIncome:>8.2f} Repayment: {repayment:>7.2f}")
             
             #If loan paid off, end loop
-            if currentLoanAmount == 0 and year >= 0:
+            if currentLoanAmount == 0:
                 if printInfo:
-                    print(f"Total repayment: £{int(totalRepaid):,d} Total borrowed: £{int(totalBorrowed):,d} Extra repaid: £{int(totalRepaid-totalBorrowed):,d}")
+                    print(f"Total repayment: £{int(totalRepaid):,d} Total borrowed: £{int(initialBalance):,d} Extra repaid: £{int(totalRepaid-initialBalance):,d}")
                 return(totalRepaid, totalBorrowed)
 
     #End loop after 30 years is up (loan not fully repaid)
     if printInfo:
-        print(f"Total repayment: £{int(totalRepaid):,d} Total borrowed: £{int(totalBorrowed):,d} Extra repaid: £{int(totalRepaid-totalBorrowed):,d}")
-    return(totalRepaid, totalBorrowed)
+        print(f"Total repayment: £{int(totalRepaid):,d} Total borrowed: £{int(initialBalance):,d} Extra repaid: £{int(totalRepaid-initialBalance):,d}")
+    return(totalRepaid, initialBalance)
 
 #Calculations for mandatory repayments
 mandatoryRepay, totalBorrowed = simulate(repaymentMethods.mandatory)
-print(f"You plan to borrow £{int(totalBorrowed):,d}")
+
 print(f"If you make the minimum repayments you will repay £{int(mandatoryRepay):,d}")
 
 #Functions that return the total repaid amount for a given repayment method, where the repayment amount/% can be varied
